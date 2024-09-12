@@ -1,0 +1,56 @@
+.div-container {
+    width: 100%;
+    height: 100vh;
+}
+
+.container {
+    height: auto;
+    width: auto;
+    background: linear-gradient(105deg, #c9c9c9 0%, #ffffff 100%);
+}
+
+
+.username {}
+
+.password {}
+
+.submit {}
+
+.reset {}
+
+
+.title {}
+
+
+.block {
+    color: #000000;
+}
+
+.footer-button {
+    background-color: #0b71f7;
+}
+
+.footer-button:hover {
+    background-color: #065ccd;
+}
+
+.text {
+    color: #000000;
+    font-weight: bold;
+}
+
+.signup-field-container {
+    display: flex;
+    flex: 1;
+    justify-content: flex-start;
+}
+
+.error-message {
+    color: red;
+    background-color: #fdd;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    text-align: center;
+    font-weight: bold;
+}
