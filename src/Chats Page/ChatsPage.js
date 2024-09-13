@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 
@@ -6,10 +6,31 @@ import { useNavigate } from 'react-router-dom'; // Import useNavigate
 function ChatsPage() {
     const navigate = useNavigate(); // Initialize useNavigate
 
+    const [userDetails, setUserDetails] = useState('');
+    const [userChats, setUserChats] = useState([]);
+
+    const dummydata = {
+        'firstname': 'Reynolds',
+        'lastname': 'Guymer'
+    }
+
+    // Fetch User Details
+    useEffect(() => {
+        fetch(`http://16.171.25.156:8000/user?first_name=${dummydata.firstname}&last_name=${dummydata.lastname}`)
+            .then(response => response.text())
+            .then(text => {
+                console.log(text)
+            })
+            .catch(error => console.error(error))
+    }, [])
+
+
     return (
         <div className="flex h-screen" style={{ fontFamily: '"Plus Jakarta Sans", "Noto Sans", sans-serif' }}>
             <div className="flex flex-col w-screen">
+                {/** Header */}
                 <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#f0f2f4] px-10 py-3">
+                    {/** Chatter + Logo on the left upper side */}
                     <div className="flex items-center gap-4 text-[#111418]">
                         <div className="size-4">
                             <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -18,18 +39,25 @@ function ChatsPage() {
                         </div>
                         <h2 className="text-[#111418] text-lg font-bold leading-tight tracking-[-0.015em]">Chatter</h2>
                     </div>
+                    {/** Sign out button + user profile picture */}
                     <div className="flex flex-1 justify-end gap-8">
                         <div className="flex gap-2">
-                            <button className="bg-red-400 text-white py-2 px-4 rounded hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-400" onClick={() => { navigate('/') }}>
+                            <button className="bg-red-400 text-white py-2 px-4 rounded hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-400" onClick={() => {
+                                test()
+                                //  navigate('/');
+                            }}>
                                 Sign Out
                             </button>
                         </div>
                         <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" style={{ backgroundImage: 'url("https://cdn.usegalileo.ai/stability/38883bd7-ccbf-4e61-860e-a153017ba4c4.png")' }}></div>
                     </div>
                 </header>
+                {/** Main Centered Screen */}
                 <div className="flex flex-1 overflow-hidden">
+                    {/** Left side - Chats */}
                     <div className="flex-none w-2/5 h-full px-6 py-5 box-border">
                         <div className="layout-content-container flex flex-col h-full">
+                            {/** Chat Search Bar */}
                             <div className="px-4 py-3">
                                 <label className="flex flex-col min-w-40 h-12 w-full">
                                     <div className="flex w-full flex-1 items-stretch rounded-xl h-full">
@@ -42,7 +70,9 @@ function ChatsPage() {
                                     </div>
                                 </label>
                             </div>
+                            {/** Chats */}
                             <div className="flex flex-col flex-1 overflow-y-auto">
+                                {/** Chat Item 1 */}
                                 <div className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between">
                                     <div className="flex items-center gap-4">
                                         <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-14 w-fit" style={{ backgroundImage: 'url("https://cdn.usegalileo.ai/stability/c335041d-6cdf-4707-9376-70db350be930.png")' }}></div>
@@ -51,8 +81,10 @@ function ChatsPage() {
                                             <p className="text-[#637588] text-sm font-normal leading-normal line-clamp-2">I just shared a link about this conversation</p>
                                         </div>
                                     </div>
-                                    <div className="shrink-0"><p className="text-[#637588] text-sm font-normal leading-normal">3h</p></div>
+                                    <div className="shrink-0">
+                                        <p className="text-[#637588] text-sm font-normal leading-normal">3h</p></div>
                                 </div>
+                                {/** Chat Item 2 */}
                                 <div className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between">
                                     <div className="flex items-center gap-4">
                                         <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-14 w-fit" style={{ backgroundImage: 'url("https://cdn.usegalileo.ai/stability/a5f1b022-e1ed-4638-9661-e7dbad4b10a1.png")' }}></div>
@@ -67,12 +99,16 @@ function ChatsPage() {
                             </div>
                         </div>
                     </div>
+                    {/** Chat Viewer (Where Messages Render) */}
                     <div className="flex-1 border-l border-gray-200 flex flex-col overflow-hidden">
+                        {/** Chat Name (Title) */}
                         <div className="bg-white px-4 py-3 border-b border-gray-200">
                             <h1 className="text-xl font-bold text-[#111418]">Chat Name</h1>
                         </div>
+                        {/** Container of messages */}
                         <div className="flex-1 overflow-y-auto bg-[#e0f2f1] px-4 py-2">
                             <div className="flex flex-col gap-2">
+                                {/** Message 1 */}
                                 <div className="flex items-start gap-4">
                                     <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-10 w-10" style={{ backgroundImage: 'url("https://cdn.usegalileo.ai/stability/c335041d-6cdf-4707-9376-70db350be930.png")' }}></div>
                                     <div className="flex flex-col">
@@ -80,6 +116,7 @@ function ChatsPage() {
                                         <p className="text-[#637588] text-sm">I just shared a link about this conversation</p>
                                     </div>
                                 </div>
+                                {/** Message 2 */}
                                 <div className="flex items-start gap-4">
                                     <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-10 w-10" style={{ backgroundImage: 'url("https://cdn.usegalileo.ai/stability/a5f1b022-e1ed-4638-9661-e7dbad4b10a1.png")' }}></div>
                                     <div className="flex flex-col">
@@ -90,8 +127,11 @@ function ChatsPage() {
                                 {/* Add more message items as needed */}
                             </div>
                         </div>
+                        {/** Message Text Input Container */}
                         <div className="bg-white px-4 py-2 border-t border-gray-200 flex items-center gap-2 box-border">
+                            {/** Text Input Element */}
                             <input placeholder="Type a message" className="flex-1 py-2 px-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                            {/** Send Button */}
                             <button className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400">
                                 Send
                             </button>
