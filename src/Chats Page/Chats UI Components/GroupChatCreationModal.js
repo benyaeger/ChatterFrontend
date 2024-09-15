@@ -1,23 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { searchForUser } from '../BackendInteraction';
+import { createNewChat, searchForUser, addUserToChat } from '../BackendInteraction';
 import { debounce } from 'lodash'; // You can also use a custom debounce function
 
-const GroupChatCreateModal = ({ onClose }) => {
+const GroupChatCreateModal = ({ setAlert, onClose }) => {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [matchingUsers, setMatchingUsers] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [pickedUsers, setPickerUsers] = useState([]);
+    const [chatName, setChatName] = useState('');
 
     async function fetchSearchMatchingUsers() {
         const [firstName, lastName] = searchTerm.split(' ');
         try {
+            // Search For User
             let data = await searchForUser(firstName, lastName);
-            console.log('Users Matching the Search From Server: ' + JSON.stringify(data));
+            // Set the State accordingly
             setMatchingUsers(data);
         }
         catch (error) {
             console.log("Error: " + error)
             setMatchingUsers([])
+        }
+
+    }
+
+    async function postNewChat() {
+        try {
+            // // Create new chat
+            let data = await createNewChat('1', chatName);
+            // // Get the created chat's ID from response
+            let new_chat_id = data.chat_id
+            // // Add each picked user to the group
+            pickedUsers.map(async user => {
+                await addUserToChat(new_chat_id, user.user_id)
+            })
+            // Close function, display success alert on main screen
+            setAlert(true, "success", "Group Chat Created Successfully!")
+            onClose();
+        }
+        catch (error) {
+            setAlert(true, "error", `Error! ${error}`)
+            console.log("Error: " + error)
         }
 
     }
@@ -63,6 +87,10 @@ const GroupChatCreateModal = ({ onClose }) => {
                     <input
                         type="text"
                         placeholder="Enter group chat name"
+                        value={chatName}
+                        onChange={(e) => {
+                            setChatName(e.target.value)
+                        }}
                         className="form-input w-full border-gray-400 rounded-lg py-2 px-3 border-2 focus:outline-none"
                     />
                 </div>
@@ -79,15 +107,19 @@ const GroupChatCreateModal = ({ onClose }) => {
 
                     {/* Dropdown for matching users */}
                     {matchingUsers.length > 0 && (
-                        <div className="absolute z-50 bg-white shadow-lg border-b-2 border-l-2 border-r-2 border-gray-400 w-full max-h-48 overflow-y-auto mt-1">
+                        <div key={matchingUsers.user_id} className="absolute z-50 bg-white shadow-lg border-b-2 border-l-2 border-r-2 border-gray-400 w-full max-h-48 overflow-y-auto mt-1">
                             {matchingUsers.slice(0, 6).map(user => (
                                 <div
                                     key={user.user_id}
                                     className="p-3 font-medium border-b hover:bg-gray-100 cursor-pointer flex items-center gap-2"
                                     onClick={() => console.log(`Selected user: ${user.first_name} ${user.last_name}`)} // Example of handling selection
                                 >
-                                    <div className="bg-blue-500 text-white py-1 px-3">
-                                        {user.first_name} {user.last_name}
+                                    <div className="bg-blue-500 text-white py-1 px-3" onClick={() => {
+                                        setPickerUsers((prev) => [...prev, user]);
+                                        setMatchingUsers([]);
+                                        setSearchTerm('');
+                                    }}>
+                                        #{user.user_id} {user.first_name} {user.last_name}
                                     </div>
                                 </div>
                             ))}
@@ -102,17 +134,19 @@ const GroupChatCreateModal = ({ onClose }) => {
                 <div className="mb-4">
                     <label className="block text-sm font-bold mb-2 text-left">Participants</label>
                     <div className="flex flex-wrap gap-2">
-                        {/* Example participant */}
-                        <div className="bg-green-500 text-white rounded-full py-1 px-3 flex items-center">
-                            <span className="text-sm font-bold">John Doe</span>
-                            <button className="ml-2 text-white hover:text-gray-300" onClick={(e) => e.stopPropagation()}>
-                                &times;
-                            </button>
-                        </div>
+                        {pickedUsers.map(user =>
+                            <div key={user.user_id} className="bg-green-500 text-white rounded-full py-1 px-3 flex items-center">
+                                <span className="text-sm font-bold">#{user.user_id} {user.first_name} {user.last_name}</span>
+                                <button className="ml-2 text-white hover:text-gray-300" onClick={() => {
+                                    setPickerUsers((prev) => prev.filter(item => item != user))
+                                }}>
+                                    &times;
+                                </button>
+                            </div>)}
                     </div>
                 </div>
                 <div className="flex justify-end">
-                    <button className="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600">
+                    <button className="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600" onClick={postNewChat}>
                         Create
                     </button>
                 </div>

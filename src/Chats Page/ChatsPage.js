@@ -1,29 +1,87 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
-import { getUserDetails } from './BackendInteraction';
+import { getChatsOfUser, getMessagesOfChat, getUserDetails, sendMessage } from './BackendInteraction';
 import GroupChatCreateModal from './Chats UI Components/GroupChatCreationModal';
+import AlertModal from './Chats UI Components/AlertModal';
 
 // Tailwind CSS classes are used directly for styling
 function ChatsPage() {
     const navigate = useNavigate(); // Initialize useNavigate
 
-    // Data
-    const [userDetails, setUserDetails] = useState('');
-    const [userChats, setUserChats] = useState([]);
-
-    // UI Management
-    const [showGroupChatCreateModal, setShowGroupChatCreateModal] = useState(false);
-
-
+    // Dummy Data for Developement TODO change this after auth implementation
     const dummydata = {
-        'first_name': 'Reynolds',
-        'last_name': 'Guymer'
+        'user_id': 1
     }
 
-    // To debug state changes, you can use useEffect to watch the state
+    // Elite Data
+    const [userChats, setUserChats] = useState([]);
+
+    // Alert Modal State Management
+    const [showAlertModal, setShowAlertModal] = useState(false);
+    const [alertModalType, setAlertModalType] = useState('success');
+    const [alertModalValue, setAlertModalValue] = useState('');
+
+    function setAlert(showAlertModal, alertModalType, alertModalValue) {
+        setShowAlertModal(showAlertModal);
+        if (showAlertModal) {
+            setAlertModalType(alertModalType);
+            setAlertModalValue(alertModalValue);
+        }
+    }
+
+    // New Group Modal Management
+    const [showGroupChatCreateModal, setShowGroupChatCreateModal] = useState(false);
+
+    async function getChatsFromBackend() {
+        try {
+            // Search For User
+            let data = await getChatsOfUser(dummydata.user_id);
+            // Set the State accordingly
+            setUserChats(data);
+        }
+        catch (error) {
+            console.log("Error: " + error)
+            setUserChats([]);
+            setAlert(true, "error", "Failed to Fetch Chats");
+        }
+    }
+
+    // Current Viewed Chat Data
+    const [currentChat, setCurrentChat] = useState('');
+    const [chatMessages, setChatMessages] = useState([]);
+    const [newMessage, setNewMessage] = useState('');
+
+
+    async function openChat() {
+        try {
+            // Get Messages from backend
+            let data = await getMessagesOfChat(currentChat.chat_id, 20);
+            // Set the State accordingly
+            setChatMessages(data);
+        }
+        catch (error) {
+            console.log("Error: " + error)
+            setChatMessages([]);
+            setAlert(true, "error", "Failed to Fetch Messages");
+        }
+    }
+
+    async function postMessage() {
+        try {
+            // Get Messages from backend
+            let data = await sendMessage(dummydata.user_id, newMessage);
+            openChat();
+        }
+        catch (error) {
+            console.log("Error: " + error)
+            setChatMessages([]);
+            setAlert(true, "error", "Failed to Fetch Messages");
+        }
+    }
+
     useEffect(() => {
-        console.log('Modal visibility changed:', showGroupChatCreateModal);
-    }, [showGroupChatCreateModal]);
+        getChatsFromBackend();
+    }, [])
 
     return (
         <div className="flex h-screen" style={{ fontFamily: '"Plus Jakarta Sans", "Noto Sans", sans-serif' }}>
@@ -54,6 +112,13 @@ function ChatsPage() {
                 </header>
                 {/** Main Centered Screen */}
                 <div className="flex flex-1 overflow-hidden">
+                    {showAlertModal && (
+                        <AlertModal
+                            type={alertModalType}
+                            message={alertModalValue} // Customize the alert
+                            onClose={() => setShowAlertModal(false)} // Close the modal after 3 seconds
+                        />
+                    )}
                     {/** Left side - Chats */}
                     <div className="flex-none w-2/5 h-full px-6 py-5 box-border">
                         <div className="layout-content-container flex flex-col h-full">
@@ -62,8 +127,8 @@ function ChatsPage() {
                             {showGroupChatCreateModal && <GroupChatCreateModal
                                 onClose={() => {
                                     setShowGroupChatCreateModal(false);
-                                    console.log("Close GroupChat Modal Button")
                                 }}
+                                setAlert={setAlert}
                             />}
                             <div className="px-4 py-3">
                                 <label className="flex flex-col min-w-40 h-12 w-full">
@@ -88,30 +153,22 @@ function ChatsPage() {
                             </div>
                             {/** Chats */}
                             <div className="flex flex-col flex-1 overflow-y-auto">
-                                {/** Chat Item 1 */}
-                                <div className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-14 w-fit" style={{ backgroundImage: 'url("https://cdn.usegalileo.ai/stability/c335041d-6cdf-4707-9376-70db350be930.png")' }}></div>
-                                        <div className="flex flex-col justify-center">
-                                            <p className="text-[#111418] text-base font-medium leading-normal line-clamp-1">Siqi Chen</p>
-                                            <p className="text-[#637588] text-sm font-normal leading-normal line-clamp-2">I just shared a link about this conversation</p>
+                                {userChats.map(chat => (
+                                    <div className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between hover:bg-gray-100 transition-colors duration-200" onClick={openChat}>
+                                        <div className="flex items-center gap-4">
+                                            <div
+                                                className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-14 w-fit"
+                                                style={{ backgroundImage: `url("${chat.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}")` }}>
+                                            </div>
+                                            <div className="flex flex-col justify-center">
+                                                <p className="text-[#111418] text-base font-medium leading-normal line-clamp-1">{chat.chat_name}</p>
+                                            </div>
+                                        </div>
+                                        <div className="shrink-0">
+                                            <p className="text-[#637588] text-sm font-normal leading-normal">3h</p>
                                         </div>
                                     </div>
-                                    <div className="shrink-0">
-                                        <p className="text-[#637588] text-sm font-normal leading-normal">3h</p></div>
-                                </div>
-                                {/** Chat Item 2 */}
-                                <div className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-14 w-fit" style={{ backgroundImage: 'url("https://cdn.usegalileo.ai/stability/a5f1b022-e1ed-4638-9661-e7dbad4b10a1.png")' }}></div>
-                                        <div className="flex flex-col justify-center">
-                                            <p className="text-[#111418] text-base font-medium leading-normal line-clamp-1">Lisa Phipps</p>
-                                            <p className="text-[#637588] text-sm font-normal leading-normal line-clamp-2">You had me at Hi. You said it all</p>
-                                        </div>
-                                    </div>
-                                    <div className="shrink-0"><p className="text-[#637588] text-sm font-normal leading-normal">5h</p></div>
-                                </div>
-                                {/* Add more chat items as needed */}
+                                ))}
                             </div>
                         </div>
                     </div>
