@@ -14,8 +14,10 @@ function ChatsPage() {
   const navigate = useNavigate(); // Initialize useNavigate
 
   // Dummy Data for Developement TODO change this after auth implementation
-  const dummydata = {
+  const dummy_user_data = {
     user_id: 1,
+    first_name: 'Kristopher',
+    last_name: 'Pechell'
   };
 
   // Elite Data
@@ -41,9 +43,11 @@ function ChatsPage() {
   async function getChatsFromBackend() {
     try {
       // Search For User
-      let data = await getChatsOfUser(dummydata.user_id);
+      let data = await getChatsOfUser(dummy_user_data.user_id);
       // Set the State accordingly
       setUserChats(data);
+      // After getting refreshed chats, we open the top chat by default
+      openChat(data[0]);
     } catch (error) {
       console.log("Error: " + error);
       setUserChats([]);
@@ -56,12 +60,12 @@ function ChatsPage() {
   const [chatMessages, setChatMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 
-  async function openChat() {
+  async function getCurentChatMessages(chat) {
     try {
       // Get Messages from backend
-      let data = await getMessagesOfChat(currentChat.chat_id, 20);
+      let data = await getMessagesOfChat(chat.chat_id, 20);
       // Set the State accordingly
-      setChatMessages(data);
+      setChatMessages(data.reverse());
     } catch (error) {
       console.log("Error: " + error);
       setChatMessages([]);
@@ -69,26 +73,36 @@ function ChatsPage() {
     }
   }
 
-  //   useEffect(() => {
-  //     openChat();
-  //   }, [currentChat]);
-
+  // This function sends a new message to the server
   async function postMessage() {
     try {
       // Get Messages from backend
-      let data = await sendMessage(dummydata.user_id, "1", newMessage);
-      console.log(data);
-      setAlert(true, "sucess", `Sent Message! Server Res: ${data?.message}`);
-      // openChat();
+      let data = await sendMessage(dummy_user_data.user_id, currentChat.chat_id, newMessage);
+      // After message posted succesfully, we delete the typed message, as the user posted it
+      setNewMessage('');
+      // We get the fresh messages, to display our sent message TODO This is not so efficient, consider other architecture
+      getCurentChatMessages(currentChat);
     } catch (error) {
       console.log("Error: " + error);
-      // setChatMessages([]);
+      setChatMessages([]);
       setAlert(true, "error", "Failed to Send Message");
     }
   }
 
+  // This function is invoked when a new chat needs to be displayed
+  function openChat(chat) {
+    // Set selected chat as current chat
+    setCurrentChat(chat);
+
+    // Get recent chat messages
+    getCurentChatMessages(chat);
+  }
+
+  // UseEffects
+  // This occurs when the user clicks on any chat, resulting in loading the chat's messages and changing the title
+  // This occurs on every screen load, fetches all the users chats
   useEffect(() => {
-    let data = getChatsFromBackend();
+    getChatsFromBackend();
   }, []);
 
   return (
@@ -201,17 +215,16 @@ function ChatsPage() {
               <div className="flex flex-col flex-1 overflow-y-auto">
                 {userChats.map((chat) => (
                   <div
-                    className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between hover:bg-gray-100 transition-colors duration-200"
-                    onClick={openChat}
+                    className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between hover:bg-gray-100 transition-colors duration-200" key={chat.chat_id}
+                    onClick={() => { openChat(chat); }}
                   >
                     <div className="flex items-center gap-4">
                       <div
                         className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-14 w-fit"
                         style={{
-                          backgroundImage: `url("${
-                            chat.image ||
+                          backgroundImage: `url("${chat.image ||
                             "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y"
-                          }")`,
+                            }")`,
                         }}
                       ></div>
                       <div className="flex flex-col justify-center">
@@ -235,49 +248,49 @@ function ChatsPage() {
             {/** Chat Name (Title) */}
             <div className="bg-white px-4 py-3 border-b border-gray-200">
               <h1 className="text-xl font-bold text-[#111418]">
-                {currentChat.chat_name}
+                {currentChat?.chat_name}
               </h1>
             </div>
             {/** Container of messages */}
             <div className="flex-1 overflow-y-auto bg-[#e0f2f1] px-4 py-2">
               <div className="flex flex-col gap-2">
-                {/** Message 1 */}
-                <div className="flex items-start gap-4">
-                  <div
-                    className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-10 w-10"
-                    style={{
-                      backgroundImage:
-                        'url("https://cdn.usegalileo.ai/stability/c335041d-6cdf-4707-9376-70db350be930.png")',
-                    }}
-                  ></div>
-                  <div className="flex flex-col">
-                    <p className="text-[#111418] text-base font-medium">
-                      Siqi Chen
-                    </p>
-                    <p className="text-[#637588] text-sm">
-                      I just shared a link about this conversation
-                    </p>
-                  </div>
-                </div>
-                {/** Message 2 */}
-                <div className="flex items-start gap-4">
-                  <div
-                    className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-10 w-10"
-                    style={{
-                      backgroundImage:
-                        'url("https://cdn.usegalileo.ai/stability/a5f1b022-e1ed-4638-9661-e7dbad4b10a1.png")',
-                    }}
-                  ></div>
-                  <div className="flex flex-col">
-                    <p className="text-[#111418] text-base font-medium">
-                      Lisa Phipps
-                    </p>
-                    <p className="text-[#637588] text-sm">
-                      You had me at Hi. You said it all
-                    </p>
-                  </div>
-                </div>
-                {/* Add more message items as needed */}
+                {chatMessages.map(message => {
+
+                  const date = new Date(message.message_sent_at);
+
+                  // Extract the parts you need
+                  const hours = date.getUTCHours().toString().padStart(2, '0');
+                  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+                  const year = date.getUTCFullYear();
+
+                  // Format the date in HH:mm YYYY
+                  const formattedDate = `${hours}:${minutes} ${year}`;
+
+                  return <div className="flex items-start gap-4">
+                    <div
+                      className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-10 w-10"
+                      style={{
+                        backgroundImage:
+                          'url("https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y")',
+                      }}
+                    ></div>
+                    <div className="flex flex-row bg-white p-3 rounded-lg shadow-md max-w-xs">
+                      <div className="flex flex-col flex-grow p-1">
+                        <p className="text-[#111418] font-bold">
+                          {message.first_name} {message.last_name}
+                        </p>
+                        <p className="text-[#111418] text-sm text-left">
+                          {message.message_content}
+                        </p>
+                      </div>
+                      <div className="mt-2 self-end">
+                        <p className="text-gray-500 text-xs">
+                          {formattedDate}
+                        </p>
+                      </div>
+                    </div>
+                  </div>;
+                })}
               </div>
             </div>
             {/** Message Text Input Container */}

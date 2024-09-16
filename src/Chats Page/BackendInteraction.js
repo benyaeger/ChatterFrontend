@@ -82,7 +82,7 @@ export async function getChatsOfUser(user_id) {
 
 export async function sendMessage(user_id, chat_id, message_content) {
   try {
-    const query = `http://16.171.25.156:5000/send_message?user_id=${user_id}&chat_id=${chat_id}&message_content="${message_content}"`;
+    const query = `http://16.171.25.156:5000/send_message?user_id=${user_id}&chat_id=${chat_id}&message_content=${message_content}`;
     console.log(query);
     const response = await fetch(query, { method: "POST" });
     const data = await response.json();
