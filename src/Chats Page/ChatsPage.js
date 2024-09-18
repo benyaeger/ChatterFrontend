@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom"; // Import useNavigate
 import {
   getChatsOfUser,
   getMessagesOfChat,
-  getUserDetails,
   sendMessage,
 } from "./BackendInteraction";
 import GroupChatCreateModal from "./Chats UI Components/GroupChatCreationModal";
 import AlertModal from "./Chats UI Components/AlertModal";
+import { signOut } from 'aws-amplify/auth';
 
 // Tailwind CSS classes are used directly for styling
 function ChatsPage() {
@@ -136,9 +136,13 @@ function ChatsPage() {
             <div className="flex gap-2">
               <button
                 className="bg-red-400 text-white py-2 px-4 rounded hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-400"
-                onClick={() => {
-                  test();
-                  //  navigate('/');
+                onClick={async () => {
+                  try {
+                    await signOut();
+                    navigate('/');
+                  } catch (error) {
+                    console.log('error signing out: ', error);
+                  }
                 }}
               >
                 Sign Out
