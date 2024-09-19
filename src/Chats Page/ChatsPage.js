@@ -8,6 +8,7 @@ import {
 import GroupChatCreateModal from "./Chats UI Components/GroupChatCreationModal";
 import AlertModal from "./Chats UI Components/AlertModal";
 import { signOut } from 'aws-amplify/auth';
+import { fetchAuthSession } from "@aws-amplify/auth"
 
 // Tailwind CSS classes are used directly for styling
 function ChatsPage() {
@@ -138,8 +139,8 @@ function ChatsPage() {
                 className="bg-red-400 text-white py-2 px-4 rounded hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-400"
                 onClick={async () => {
                   try {
-                    await signOut();
                     navigate('/');
+                    await signOut();
                   } catch (error) {
                     console.log('error signing out: ', error);
                   }

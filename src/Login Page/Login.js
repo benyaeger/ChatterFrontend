@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signUp, confirmSignUp, signIn } from 'aws-amplify/auth';
+import { signUp, confirmSignUp, signIn, fetchAuthSession } from 'aws-amplify/auth';
 import './Login.css'; // You can use this file for additional custom styles if needed
 
 function Login() {
@@ -33,7 +33,7 @@ function Login() {
         navigate('/chats');
     }
 
-    async function handleLogin() {
+    async function handleSignIn() {
         if (!username || !password) {
             setError('Please fill all fields.');
         }
@@ -44,13 +44,12 @@ function Login() {
                     username: username,
                     password: password
                 });
-                console.log(`responses: ${isSignedIn, nextStep, user}`);
                 if (isSignedIn) {
                     redirectAfterAuth();
                 }
             } catch (error) {
-                console.log(`error: ${error}`);
-                setError(JSON.stringify(error));
+                console.log(`error: ${error.message}`);
+                setError(error.message);
             }
         }
     }
@@ -79,7 +78,7 @@ function Login() {
                     redirectAfterAuth();
                 }
             } catch (error) {
-                setError(JSON.stringify(error));
+                setError(error.message);
             }
         }
     }
@@ -89,7 +88,7 @@ function Login() {
             await confirmSignUp(username, confirmationCode);
             redirectAfterAuth();
         } catch (error) {
-            setError(JSON.stringify(error));
+            setError(error.message);
         }
 
         try {
@@ -104,7 +103,7 @@ function Login() {
                 throw error('sign up not completed')
             }
         } catch (error) {
-            setError(JSON.stringify(error));
+            setError(error.message);
         }
     }
 
@@ -139,7 +138,7 @@ function Login() {
                         </div>
                         {error && <div className="text-red-500 mb-4">{error}</div>}
                         <button
-                            onClick={handleLogin}
+                            onClick={handleSignIn}
                             className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
                         >
                             Sign In
