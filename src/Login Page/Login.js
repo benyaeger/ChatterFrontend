@@ -26,6 +26,7 @@ function Login() {
         setLastName('');
         setEmailAddress('');
         setConfirmationCode('');
+        setConfirmSignUpField(false);
         setError('');
     }
 
