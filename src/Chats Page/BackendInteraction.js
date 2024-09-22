@@ -1,4 +1,9 @@
 import { fetchAuthSession } from "@aws-amplify/auth";
+import { DEV_SERVER_IP, DEV_SERVER_PORT, PROD_SERVER_IP, PROD_SERVER_PORT, ACTIVE_SERVER } from "../NETWROK_CONSTS";
+
+const SERVER_IP = ACTIVE_SERVER === 'DEV' ? DEV_SERVER_IP : PROD_SERVER_IP
+const SERVER_PORT = ACTIVE_SERVER === 'DEV' ? PROD_SERVER_PORT : DEV_SERVER_PORT
+
 
 // Auth
 // Get user's JWT token
@@ -26,7 +31,35 @@ export async function searchForUser(first_name, last_name) {
   if (userTokenValid) {
     try {
       const response = await fetch(
-        `http://16.171.25.156:5000/user?first_name=${first_name}&last_name=${last_name}`
+        `http://${SERVER_IP}:${SERVER_PORT}/user?first_name=${first_name}&last_name=${last_name}`
+        , {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          }
+        });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          `HTTP error! status: ${response.status}, ${JSON.stringify(data)}`
+        );
+      }
+      return data;
+    } catch (error) {
+      console.error("Fetch error:", error);
+      throw error; // Re-throw error to handle it where the function is called
+    }
+  }
+
+}
+
+export async function getUserByUsername(username) {
+  const { userTokenValid, accessToken, idToken } = await getUserToken();
+  if (userTokenValid) {
+    try {
+      const response = await fetch(
+        `http://${SERVER_IP}:${SERVER_PORT}/user_by_username?user_name=${username}`
         , {
           method: 'GET',
           headers: {
@@ -54,7 +87,7 @@ export async function createNewChat(owner_id, chat_name) {
   if (userTokenValid) {
     try {
       const response = await fetch(
-        `http://16.171.25.156:5000/newchat?owner_id=${owner_id}&chat_name=${chat_name}`,
+        `http://${SERVER_IP}:${SERVER_PORT}/newchat?owner_id=${owner_id}&chat_name=${chat_name}`,
         {
           method: "POST",
           headers: {
@@ -81,7 +114,7 @@ export async function addUserToChat(chat_id, added_user_id) {
   const { userTokenValid, accessToken, idToken } = await getUserToken();
   if (userTokenValid) {
     try {
-      const query = `http://16.171.25.156:5000/add_user_to_chat?chat_id=${chat_id}&added_user_id=${added_user_id}`;
+      const query = `http://${SERVER_IP}:${SERVER_PORT}/add_user_to_chat?chat_id=${chat_id}&added_user_id=${added_user_id}`;
 
       const response = await fetch(query, {
         method: "POST", headers: {
@@ -104,12 +137,12 @@ export async function addUserToChat(chat_id, added_user_id) {
   }
 }
 
-export async function getChatsOfUser(user_id) {
+export async function getChatsOfUser(user_name) {
   const { userTokenValid, accessToken, idToken } = await getUserToken();
 
   if (userTokenValid) {
     try {
-      const query = `http://16.171.25.156:5000/user_chats?user_id=${user_id}`;
+      const query = `http://${SERVER_IP}:${SERVER_PORT}/user_chats?user_name=${user_name}`;
 
       const response = await fetch(query, {
         method: "GET",
@@ -136,7 +169,7 @@ export async function sendMessage(user_id, chat_id, message_content) {
   const { userTokenValid, accessToken, idToken } = await getUserToken();
   if (userTokenValid) {
     try {
-      const query = `http://16.171.25.156:5000/send_message?user_id=${user_id}&chat_id=${chat_id}&message_content=${message_content}`;
+      const query = `http://${SERVER_IP}:${SERVER_PORT}/send_message?user_id=${user_id}&chat_id=${chat_id}&message_content=${message_content}`;
 
       const response = await fetch(query, {
         method: "POST",
@@ -163,7 +196,7 @@ export async function getMessagesOfChat(chat_id, number_of_messages) {
   const { userTokenValid, accessToken, idToken } = await getUserToken();
   if (userTokenValid) {
     try {
-      const query = `http://16.171.25.156:5000/get_chat_messages?chat_id=${chat_id}&number_of_messages=${number_of_messages}`;
+      const query = `http://${SERVER_IP}:${SERVER_PORT}/get_chat_messages?chat_id=${chat_id}&number_of_messages=${number_of_messages}`;
 
       const response = await fetch(query, {
         method: "GET",

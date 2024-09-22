@@ -3,23 +3,28 @@ import { useNavigate } from "react-router-dom"; // Import useNavigate
 import {
   getChatsOfUser,
   getMessagesOfChat,
-  sendMessage,
+  getUserByUsername,
 } from "./BackendInteraction";
 import GroupChatCreateModal from "./Chats UI Components/GroupChatCreationModal";
 import AlertModal from "./Chats UI Components/AlertModal";
-import { signOut } from 'aws-amplify/auth';
-import { io } from 'socket.io-client';
+import { signOut, getCurrentUser } from 'aws-amplify/auth';
+import { socket } from "../socket";
 
 // Tailwind CSS classes are used directly for styling
 function ChatsPage() {
   const navigate = useNavigate(); // Initialize useNavigate
 
-  // Dummy Data for Developement TODO change this after auth implementation
-  const dummy_user_data = {
-    user_id: 1,
-    first_name: 'Kristopher',
-    last_name: 'Pechell'
-  };
+  // User Details State
+  const [user, setUser] = useState('');
+
+  // This function gets the user tuple by the username of cognito
+  async function fetchUserDetails() {
+    const { username } = await getCurrentUser();
+    const user = await getUserByUsername(username);
+    // Setting the state
+    setUser(user);
+  }
+
 
   // Elite Data
   const [userChats, setUserChats] = useState([]);
@@ -44,7 +49,7 @@ function ChatsPage() {
   async function getChatsFromBackend() {
     try {
       // Search For User
-      let data = await getChatsOfUser(dummy_user_data.user_id);
+      let data = await getChatsOfUser(user.username);
       // Set the State accordingly
       setUserChats(data);
       // After getting refreshed chats, we open the top chat by default
@@ -74,18 +79,17 @@ function ChatsPage() {
     }
   }
 
-  // This function sends a new message to the server
   async function postMessage() {
     try {
-      // Get Messages from backend
-      let data = await sendMessage(dummy_user_data.user_id, currentChat.chat_id, newMessage);
+      // Send message to server via websocket
+      socket.emit('message', {
+        user_id: user.user_id,
+        chat_id: currentChat.chat_id,
+        message_content: newMessage,
+      });
       // After message posted succesfully, we delete the typed message, as the user posted it
       setNewMessage('');
-      // We get the fresh messages, to display our sent message TODO This is not so efficient, consider other architecture
-      getCurentChatMessages(currentChat);
     } catch (error) {
-      console.log("Error: " + error);
-      setChatMessages([]);
       setAlert(true, "error", "Failed to Send Message");
     }
   }
@@ -95,16 +99,47 @@ function ChatsPage() {
     // Set selected chat as current chat
     setCurrentChat(chat);
 
+    // Join chat room on websocket
+    socket.emit('join', { username: user.username, chat_id: chat.chat_id });
+
     // Get recent chat messages
     getCurentChatMessages(chat);
   }
 
   // UseEffects
-  // This occurs when the user clicks on any chat, resulting in loading the chat's messages and changing the title
   // This occurs on every screen load, fetches all the users chats
+  // UseEffects
   useEffect(() => {
-    getChatsFromBackend();
+    // Async init function
+    async function pageInit() {
+      // We fetch and set user details first
+      await fetchUserDetails(); // Wait for user details to be fetched
+      // We connect the websocket for real time messaging
+      socket.connect();
+    }
+    // We call the function
+    pageInit();
   }, []);
+
+  // Everytime the user is changed (login/logout) we fetch the latest chats
+  useEffect(() => {
+    if (user) { // Only call if username is set
+      getChatsFromBackend();
+    }
+  }, [user]);
+
+  // New message handler, we add the new message to the chat messages
+  socket.on('new_message', (message) => {
+    // If the server answers, We display our new message
+    setChatMessages((prev) => [...prev, message]);
+  })
+
+  // Message sending error handler
+  socket.on('error_sending_message', (error) => {
+    // If the server answers, We display our new message
+    console.log(error);
+    setAlert(true, 'error', error);
+  })
 
   return (
     <div
@@ -271,7 +306,7 @@ function ChatsPage() {
                   // Format the date in HH:mm YYYY
                   const formattedDate = `${hours}:${minutes} ${year}`;
 
-                  return <div className="flex items-start gap-4">
+                  return <div className="flex items-start gap-4" key={message.message_id}>
                     <div
                       className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-10 w-10"
                       style={{

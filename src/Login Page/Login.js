@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signUp, confirmSignUp, signIn, fetchAuthSession } from 'aws-amplify/auth';
+import { signUp, confirmSignUp, signIn, getCurrentUser } from 'aws-amplify/auth';
 import './Login.css'; // You can use this file for additional custom styles if needed
 
 function Login() {
@@ -107,6 +107,21 @@ function Login() {
             setError(error.message);
         }
     }
+
+    async function checkSessionStatus() {
+        try {
+            const { username, userId, signInDetails } = await getCurrentUser();
+            if (username && userId) {
+                redirectAfterAuth();
+            }
+        }
+        catch (error) {
+        }
+    }
+
+    useEffect(() => {
+        checkSessionStatus();
+    }, [])
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-gray-300 via-white to-white">
