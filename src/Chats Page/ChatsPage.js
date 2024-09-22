@@ -8,7 +8,7 @@ import {
 import GroupChatCreateModal from "./Chats UI Components/GroupChatCreationModal";
 import AlertModal from "./Chats UI Components/AlertModal";
 import { signOut } from 'aws-amplify/auth';
-import { fetchAuthSession } from "@aws-amplify/auth"
+import { io } from 'socket.io-client';
 
 // Tailwind CSS classes are used directly for styling
 function ChatsPage() {
