@@ -7,7 +7,7 @@ import {
 } from "./BackendInteraction";
 import GroupChatCreateModal from "./Chats UI Components/GroupChatCreationModal";
 import AlertModal from "./Chats UI Components/AlertModal";
-import { signOut, getCurrentUser } from 'aws-amplify/auth';
+import { signOut, getCurrentUser } from "aws-amplify/auth";
 import { socket } from "../socket";
 
 // Tailwind CSS classes are used directly for styling
@@ -15,16 +15,16 @@ function ChatsPage() {
   const navigate = useNavigate(); // Initialize useNavigate
 
   // User Details State
-  const [user, setUser] = useState('');
+  const [user, setUser] = useState("");
 
   // This function gets the user tuple by the username of cognito
   async function fetchUserDetails() {
     const { username } = await getCurrentUser();
     const user = await getUserByUsername(username);
     // Setting the state
+    console.log(user);
     setUser(user);
   }
-
 
   // Elite Data
   const [userChats, setUserChats] = useState([]);
@@ -43,8 +43,9 @@ function ChatsPage() {
   }
 
   // New Group Modal Management
-  const [showGroupChatCreateModal, setShowGroupChatCreateModal] =
-    useState(false);
+  const [showGroupChatCreateModal, setShowGroupChatCreateModal] = useState(
+    false
+  );
 
   async function getChatsFromBackend() {
     try {
@@ -82,13 +83,13 @@ function ChatsPage() {
   async function postMessage() {
     try {
       // Send message to server via websocket
-      socket.emit('message', {
+      socket.emit("message", {
         user_id: user.user_id,
         chat_id: currentChat.chat_id,
         message_content: newMessage,
       });
       // After message posted succesfully, we delete the typed message, as the user posted it
-      setNewMessage('');
+      setNewMessage("");
     } catch (error) {
       setAlert(true, "error", "Failed to Send Message");
     }
@@ -100,7 +101,7 @@ function ChatsPage() {
     setCurrentChat(chat);
 
     // Join chat room on websocket
-    socket.emit('join', { username: user.username, chat_id: chat.chat_id });
+    socket.emit("join", { username: user.username, chat_id: chat.chat_id });
 
     // Get recent chat messages
     getCurentChatMessages(chat);
@@ -113,7 +114,11 @@ function ChatsPage() {
     // Async init function
     async function pageInit() {
       // We fetch and set user details first
-      await fetchUserDetails(); // Wait for user details to be fetched
+      try {
+        await fetchUserDetails(); // Wait for user details to be fetched
+      } catch (error) {
+        setAlert(true, "error", error.message);
+      }
       // We connect the websocket for real time messaging
       socket.connect();
     }
@@ -123,23 +128,25 @@ function ChatsPage() {
 
   // Everytime the user is changed (login/logout) we fetch the latest chats
   useEffect(() => {
-    if (user) { // Only call if username is set
+    if (user) {
+      // Only call if username is set
       getChatsFromBackend();
     }
   }, [user]);
 
   // New message handler, we add the new message to the chat messages
-  socket.on('new_message', (message) => {
+  socket.on("new_message", (message) => {
+    console.log("new message received from server"); // BUG
     // If the server answers, We display our new message
     setChatMessages((prev) => [...prev, message]);
-  })
+  });
 
   // Message sending error handler
-  socket.on('error_sending_message', (error) => {
+  socket.on("error_sending_message", (error) => {
     // If the server answers, We display our new message
     console.log(error);
-    setAlert(true, 'error', error);
-  })
+    setAlert(true, "error", error);
+  });
 
   return (
     <div
@@ -174,10 +181,10 @@ function ChatsPage() {
                 className="bg-red-400 text-white py-2 px-4 rounded hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-400"
                 onClick={async () => {
                   try {
-                    navigate('/');
+                    navigate("/");
                     await signOut();
                   } catch (error) {
-                    console.log('error signing out: ', error);
+                    console.log("error signing out: ", error);
                   }
                 }}
               >
@@ -213,6 +220,7 @@ function ChatsPage() {
                     setShowGroupChatCreateModal(false);
                   }}
                   setAlert={setAlert}
+                  user={user}
                 />
               )}
               <div className="px-4 py-3">
@@ -255,16 +263,18 @@ function ChatsPage() {
               <div className="flex flex-col flex-1 overflow-y-auto">
                 {userChats.map((chat) => (
                   <div
-                    className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between hover:bg-gray-100 transition-colors duration-200" key={chat.chat_id}
-                    onClick={() => { openChat(chat); }}
+                    className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between hover:bg-gray-100 transition-colors duration-200"
+                    key={chat.chat_id}
+                    onClick={() => {
+                      openChat(chat);
+                    }}
                   >
                     <div className="flex items-center gap-4">
                       <div
                         className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-14 w-fit"
                         style={{
                           backgroundImage: `url("${chat.image ||
-                            "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y"
-                            }")`,
+                            "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y"}")`,
                         }}
                       ></div>
                       <div className="flex flex-col justify-center">
@@ -294,42 +304,52 @@ function ChatsPage() {
             {/** Container of messages */}
             <div className="flex-1 overflow-y-auto bg-[#e0f2f1] px-4 py-2">
               <div className="flex flex-col gap-2">
-                {chatMessages.map(message => {
-
+                {chatMessages.map((message) => {
                   const date = new Date(message.message_sent_at);
 
                   // Extract the parts you need
-                  const hours = date.getUTCHours().toString().padStart(2, '0');
-                  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+                  const hours = date
+                    .getUTCHours()
+                    .toString()
+                    .padStart(2, "0");
+                  const minutes = date
+                    .getUTCMinutes()
+                    .toString()
+                    .padStart(2, "0");
                   const year = date.getUTCFullYear();
 
                   // Format the date in HH:mm YYYY
                   const formattedDate = `${hours}:${minutes} ${year}`;
 
-                  return <div className="flex items-start gap-4" key={message.message_id}>
+                  return (
                     <div
-                      className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-10 w-10"
-                      style={{
-                        backgroundImage:
-                          'url("https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y")',
-                      }}
-                    ></div>
-                    <div className="flex flex-row bg-white p-3 rounded-lg shadow-md max-w-xs">
-                      <div className="flex flex-col flex-grow p-1">
-                        <p className="text-[#111418] font-bold">
-                          {message.first_name} {message.last_name}
-                        </p>
-                        <p className="text-[#111418] text-sm text-left">
-                          {message.message_content}
-                        </p>
-                      </div>
-                      <div className="mt-2 self-end">
-                        <p className="text-gray-500 text-xs">
-                          {formattedDate}
-                        </p>
+                      className="flex items-start gap-4"
+                      key={message.message_id}
+                    >
+                      <div
+                        className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-10 w-10"
+                        style={{
+                          backgroundImage:
+                            'url("https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y")',
+                        }}
+                      ></div>
+                      <div className="flex flex-row bg-white p-3 rounded-lg shadow-md max-w-xs">
+                        <div className="flex flex-col flex-grow p-1">
+                          <p className="text-[#111418] font-bold">
+                            {message.first_name} {message.last_name}
+                          </p>
+                          <p className="text-[#111418] text-sm text-left">
+                            {message.message_content}
+                          </p>
+                        </div>
+                        <div className="mt-2 self-end">
+                          <p className="text-gray-500 text-xs">
+                            {formattedDate}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>;
+                  );
                 })}
               </div>
             </div>
