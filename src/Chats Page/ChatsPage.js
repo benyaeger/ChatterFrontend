@@ -28,6 +28,7 @@ function ChatsPage() {
 
   // Elite Data
   const [userChats, setUserChats] = useState([]);
+  const [firstLoad, setFirstLoad] = useState(true);
 
   // Alert Modal State Management
   const [showAlertModal, setShowAlertModal] = useState(false);
@@ -85,11 +86,12 @@ function ChatsPage() {
       // Send message to server via websocket
       socket.emit("message", {
         user_id: user.user_id,
+        first_name: user.first_name,
+        last_name: user.last_name,
         chat_id: currentChat.chat_id,
         message_content: newMessage,
       });
       // After message posted succesfully, we delete the typed message, as the user posted it
-      setNewMessage("");
     } catch (error) {
       setAlert(true, "error", "Failed to Send Message");
     }
@@ -124,29 +126,44 @@ function ChatsPage() {
     }
     // We call the function
     pageInit();
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   // Everytime the user is changed (login/logout) we fetch the latest chats
   useEffect(() => {
-    if (user) {
+    if (user && firstLoad) {
       // Only call if username is set
       getChatsFromBackend();
+
+      // Set first load to false
+      setFirstLoad(false);
     }
-  }, [user]);
+  }, [user, firstLoad]);
 
-  // New message handler, we add the new message to the chat messages
-  socket.on("new_message", (message) => {
-    console.log("new message received from server"); // BUG
-    // If the server answers, We display our new message
-    setChatMessages((prev) => [...prev, message]);
-  });
+  useEffect(() => {
+    // New message handler, we add the new message to the chat messages
+    socket.on("new_message", (message) => {
+      if (message.sender_id === user.user_id) {
+        setNewMessage("");
+      }
+      // If the server answers, We display our new message
+      setChatMessages((prev) => [...prev, message]);
+    });
 
-  // Message sending error handler
-  socket.on("error_sending_message", (error) => {
-    // If the server answers, We display our new message
-    console.log(error);
-    setAlert(true, "error", error);
-  });
+    // Message sending error handler
+    socket.on("error_sending_message", (error) => {
+      // If the server answers, We display our new message
+      setAlert(true, "error", error);
+    });
+
+    return () => {
+      socket.off("new_message");
+      socket.off("error_sending_message");
+    };
+  }, []);
 
   return (
     <div
@@ -181,8 +198,8 @@ function ChatsPage() {
                 className="bg-red-400 text-white py-2 px-4 rounded hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-400"
                 onClick={async () => {
                   try {
-                    navigate("/");
                     await signOut();
+                    navigate("/");
                   } catch (error) {
                     console.log("error signing out: ", error);
                   }
