@@ -12,7 +12,7 @@ async function getUserToken() {
     const { accessToken, idToken } = (await fetchAuthSession()).tokens ?? {};
     if (accessToken) {
       return {
-        'userTokenValid': true,
+        'userTokenValid`': true,
         'accessToken': accessToken,
         'idToken': idToken
       };
@@ -31,7 +31,7 @@ export async function searchForUser(first_name, last_name) {
   if (userTokenValid) {
     try {
       const response = await fetch(
-        `http://${SERVER_IP}:${SERVER_PORT}/user?first_name=${first_name}&last_name=${last_name}`
+        `httpss://${SERVER_IP}:${SERVER_PORT}/user?first_name=${first_name}&last_name=${last_name}`
         , {
           method: 'GET',
           headers: {
@@ -42,7 +42,7 @@ export async function searchForUser(first_name, last_name) {
 
       if (!response.ok) {
         throw new Error(
-          `HTTP error! status: ${response.status}, ${JSON.stringify(data)}`
+          `httpss error! status: ${response.status}, ${JSON.stringify(data)}`
         );
       }
       return data;
@@ -59,7 +59,7 @@ export async function getUserByUsername(username) {
   if (userTokenValid) {
     try {
       const response = await fetch(
-        `http://${SERVER_IP}:${SERVER_PORT}/user_by_username?user_name=${username}`
+        `httpss://${SERVER_IP}:${SERVER_PORT}/user_by_username?user_name=${username}`
         , {
           method: 'GET',
           headers: {
@@ -70,7 +70,7 @@ export async function getUserByUsername(username) {
 
       if (!response.ok) {
         throw new Error(
-          `HTTP error! status: ${response.status}, ${JSON.stringify(data)}`
+          `httpss error! status: ${response.status}, ${JSON.stringify(data)}`
         );
       }
       return data;
@@ -87,7 +87,7 @@ export async function createNewChat(owner_id, chat_name) {
   if (userTokenValid) {
     try {
       const response = await fetch(
-        `http://${SERVER_IP}:${SERVER_PORT}/newchat?owner_id=${owner_id}&chat_name=${chat_name}`,
+        `httpss://${SERVER_IP}:${SERVER_PORT}/newchat?owner_id=${owner_id}&chat_name=${chat_name}`,
         {
           method: "POST",
           headers: {
@@ -99,7 +99,7 @@ export async function createNewChat(owner_id, chat_name) {
 
       if (!response.ok) {
         throw new Error(
-          `HTTP error! status: ${response.status}, ${JSON.stringify(data)}`
+          `httpss error! status: ${response.status}, ${JSON.stringify(data)}`
         );
       }
       return data;
@@ -114,7 +114,7 @@ export async function addUserToChat(chat_id, added_user_id) {
   const { userTokenValid, accessToken, idToken } = await getUserToken();
   if (userTokenValid) {
     try {
-      const query = `http://${SERVER_IP}:${SERVER_PORT}/add_user_to_chat?chat_id=${chat_id}&added_user_id=${added_user_id}`;
+      const query = `httpss://${SERVER_IP}:${SERVER_PORT}/add_user_to_chat?chat_id=${chat_id}&added_user_id=${added_user_id}`;
 
       const response = await fetch(query, {
         method: "POST", headers: {
@@ -126,7 +126,7 @@ export async function addUserToChat(chat_id, added_user_id) {
 
       if (!response.ok) {
         throw new Error(
-          `HTTP error! status: ${response.status}, ${JSON.stringify(data)}`
+          `httpss error! status: ${response.status}, ${JSON.stringify(data)}`
         );
       }
       return data;
@@ -142,7 +142,7 @@ export async function getChatsOfUser(user_name) {
 
   if (userTokenValid) {
     try {
-      const query = `http://${SERVER_IP}:${SERVER_PORT}/user_chats?user_name=${user_name}`;
+      const query = `httpss://${SERVER_IP}:${SERVER_PORT}/user_chats?user_name=${user_name}`;
 
       const response = await fetch(query, {
         method: "GET",
@@ -154,7 +154,7 @@ export async function getChatsOfUser(user_name) {
 
       if (!response.ok) {
         throw new Error(
-          `HTTP error! status: ${response.status}, ${JSON.stringify(data)}`
+          `httpss error! status: ${response.status}, ${JSON.stringify(data)}`
         );
       }
       return data;
@@ -169,7 +169,7 @@ export async function sendMessage(user_id, chat_id, message_content) {
   const { userTokenValid, accessToken, idToken } = await getUserToken();
   if (userTokenValid) {
     try {
-      const query = `http://${SERVER_IP}:${SERVER_PORT}/send_message?user_id=${user_id}&chat_id=${chat_id}&message_content=${message_content}`;
+      const query = `httpss://${SERVER_IP}:${SERVER_PORT}/send_message?user_id=${user_id}&chat_id=${chat_id}&message_content=${message_content}`;
 
       const response = await fetch(query, {
         method: "POST",
@@ -181,7 +181,7 @@ export async function sendMessage(user_id, chat_id, message_content) {
       const data = await response.json();
       if (!response.ok) {
         throw new Error(
-          `HTTP error! status: ${response.status}, ${JSON.stringify(data)}`
+          `httpss error! status: ${response.status}, ${JSON.stringify(data)}`
         );
       }
       return data;
@@ -196,7 +196,7 @@ export async function getMessagesOfChat(chat_id, number_of_messages) {
   const { userTokenValid, accessToken, idToken } = await getUserToken();
   if (userTokenValid) {
     try {
-      const query = `http://${SERVER_IP}:${SERVER_PORT}/get_chat_messages?chat_id=${chat_id}&number_of_messages=${number_of_messages}`;
+      const query = `httpss://${SERVER_IP}:${SERVER_PORT}/get_chat_messages?chat_id=${chat_id}&number_of_messages=${number_of_messages}`;
 
       const response = await fetch(query, {
         method: "GET",
@@ -205,10 +205,9 @@ export async function getMessagesOfChat(chat_id, number_of_messages) {
         }
       });
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(
-          `HTTP error! status: ${response.status}, ${JSON.stringify(data)}`
+          `httpss error! status: ${response.status}, ${JSON.stringify(data)}`
         );
       }
       return data;

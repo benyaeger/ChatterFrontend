@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom"; // Import useNavigate
 import {
   getChatsOfUser,
@@ -12,150 +12,102 @@ import { socket } from "../socket";
 
 // Tailwind CSS classes are used directly for styling
 function ChatsPage() {
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
 
   // User Details State
-  const [user, setUser] = useState("");
-
-  // This function gets the user tuple by the username of cognito
-  async function fetchUserDetails() {
-    const { username } = await getCurrentUser();
-    const user = await getUserByUsername(username);
-    // Setting the state
-    console.log(user);
-    setUser(user);
-  }
-
-  // Elite Data
+  const [user, setUser] = useState(null);
   const [userChats, setUserChats] = useState([]);
-  const [firstLoad, setFirstLoad] = useState(true);
-
-  // Alert Modal State Management
+  const [currentChat, setCurrentChat] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertModalType, setAlertModalType] = useState("success");
   const [alertModalValue, setAlertModalValue] = useState("");
+  const [showGroupChatCreateModal, setShowGroupChatCreateModal] = useState(false);
+  const messagesEndRef = useRef(null);
+  const [firstLoad, setFirstLoad] = useState(true);
 
-  function setAlert(showAlertModal, alertModalType, alertModalValue) {
-    setShowAlertModal(showAlertModal);
-    if (showAlertModal) {
-      setAlertModalType(alertModalType);
-      setAlertModalValue(alertModalValue);
+  // Function to display alerts
+  const setAlert = (show, type, value) => {
+    setShowAlertModal(show);
+    if (show) {
+      setAlertModalType(type);
+      setAlertModalValue(value);
     }
-  }
+  };
 
-  // New Group Modal Management
-  const [showGroupChatCreateModal, setShowGroupChatCreateModal] = useState(
-    false
-  );
-
-  async function getChatsFromBackend() {
+  // Fetch user details
+  const fetchUserDetails = async () => {
     try {
-      // Search For User
-      let data = await getChatsOfUser(user.username);
-      // Set the State accordingly
-      setUserChats(data);
-      // After getting refreshed chats, we open the top chat by default
-      openChat(data[0]);
+      const { username } = await getCurrentUser();
+      const userData = await getUserByUsername(username);
+      setUser(userData);
     } catch (error) {
-      console.log("Error: " + error);
+      setAlert(true, "error", error.message);
+    }
+  };
+
+  // Fetch user chats
+  const getChatsFromBackend = async () => {
+    try {
+      if (!user) return;
+      const data = await getChatsOfUser(user.username);
+      setUserChats(data);
+      if (data.length > 0) openChat(data[0]);
+    } catch (error) {
+      console.error("Error fetching chats: ", error);
       setUserChats([]);
       setAlert(true, "error", "Failed to Fetch Chats");
     }
-  }
+  };
 
-  // Current Viewed Chat Data
-  const [currentChat, setCurrentChat] = useState("");
-  const [chatMessages, setChatMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState("");
-
-  async function getCurentChatMessages(chat) {
+  // Fetch messages for current chat
+  const getCurentChatMessages = async (chat) => {
     try {
-      // Get Messages from backend
-      let data = await getMessagesOfChat(chat.chat_id, 20);
-      // Set the State accordingly
-      setChatMessages(data.reverse());
+      const messages = await getMessagesOfChat(chat.chat_id, 20);
+      setChatMessages(messages.reverse());
     } catch (error) {
-      console.log("Error: " + error);
+      console.error("Error fetching messages: ", error);
       setChatMessages([]);
       setAlert(true, "error", "Failed to Fetch Messages Of Chat");
     }
-  }
+  };
 
-  async function postMessage() {
-    try {
-      // Send message to server via websocket
-      socket.emit("message", {
-        user_id: user.user_id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        chat_id: currentChat.chat_id,
-        message_content: newMessage,
-      });
-      // After message posted succesfully, we delete the typed message, as the user posted it
-    } catch (error) {
-      setAlert(true, "error", "Failed to Send Message");
-    }
-  }
-
-  // This function is invoked when a new chat needs to be displayed
-  function openChat(chat) {
-    // Set selected chat as current chat
+  // Handle new chat opening
+  const openChat = (chat) => {
     setCurrentChat(chat);
-
-    // Join chat room on websocket
     socket.emit("join", { username: user.username, chat_id: chat.chat_id });
-
-    // Get recent chat messages
     getCurentChatMessages(chat);
-  }
+  };
 
-  // UseEffects
-  // This occurs on every screen load, fetches all the users chats
-  // UseEffects
-  useEffect(() => {
-    // Async init function
-    async function pageInit() {
-      // We fetch and set user details first
-      try {
-        await fetchUserDetails(); // Wait for user details to be fetched
-      } catch (error) {
-        setAlert(true, "error", error.message);
-      }
-      // We connect the websocket for real time messaging
-      socket.connect();
+  // Post a new message
+  const postMessage = () => {
+    if (!newMessage.trim()) return; // Prevent sending empty messages
+    socket.emit("message", {
+      user_id: user.user_id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      chat_id: currentChat.chat_id,
+      message_content: newMessage,
+    });
+    setNewMessage("");
+  };
+
+  // Scroll to the bottom of messages
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView();
     }
-    // We call the function
-    pageInit();
+  };
 
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
-
-  // Everytime the user is changed (login/logout) we fetch the latest chats
+  // Socket event handlers
   useEffect(() => {
-    if (user && firstLoad) {
-      // Only call if username is set
-      getChatsFromBackend();
-
-      // Set first load to false
-      setFirstLoad(false);
-    }
-  }, [user, firstLoad]);
-
-  useEffect(() => {
-    // New message handler, we add the new message to the chat messages
     socket.on("new_message", (message) => {
-      if (message.sender_id === user.user_id) {
-        setNewMessage("");
-      }
-      // If the server answers, We display our new message
       setChatMessages((prev) => [...prev, message]);
+      scrollToBottom();
     });
 
-    // Message sending error handler
     socket.on("error_sending_message", (error) => {
-      // If the server answers, We display our new message
       setAlert(true, "error", error);
     });
 
@@ -163,7 +115,28 @@ function ChatsPage() {
       socket.off("new_message");
       socket.off("error_sending_message");
     };
+  }, [user]);
+
+  // Initialize page
+  useEffect(() => {
+    const init = async () => {
+      await fetchUserDetails();
+      socket.connect();
+    };
+    init();
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
+
+  // Fetch chats on user change
+  useEffect(() => {
+    if (user && firstLoad) {
+      getChatsFromBackend();
+      setFirstLoad(false);
+    }
+  }, [user, firstLoad]);
 
   return (
     <div
@@ -280,7 +253,7 @@ function ChatsPage() {
               <div className="flex flex-col flex-1 overflow-y-auto">
                 {userChats.map((chat) => (
                   <div
-                    className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between hover:bg-gray-100 transition-colors duration-200"
+                    className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between hover:bg-gray-100 transition-colors duration-200 border-t border-gray-200"
                     key={chat.chat_id}
                     onClick={() => {
                       openChat(chat);
@@ -319,56 +292,52 @@ function ChatsPage() {
               </h1>
             </div>
             {/** Container of messages */}
-            <div className="flex-1 overflow-y-auto bg-[#e0f2f1] px-4 py-2">
-              <div className="flex flex-col gap-2">
-                {chatMessages.map((message) => {
-                  const date = new Date(message.message_sent_at);
+            <div className="flex-1 overflow-y-auto bg-[#add8e6] px-4 py-2">
+              {chatMessages.length === 0 ? (
+                <div className="flex justify-center items-center h-full">
+                  <p className="text-gray-400 text-lg">No Messages Yet</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {chatMessages.map((message) => {
+                    const date = new Date(message.message_sent_at);
+                    // Format the date to dd/mm hh:mm in the user's timezone
+                    const formattedDate = date.toLocaleString("en-GB", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false, // Use 24-hour format
+                    });
 
-                  // Extract the parts you need
-                  const hours = date
-                    .getUTCHours()
-                    .toString()
-                    .padStart(2, "0");
-                  const minutes = date
-                    .getUTCMinutes()
-                    .toString()
-                    .padStart(2, "0");
-                  const year = date.getUTCFullYear();
-
-                  // Format the date in HH:mm YYYY
-                  const formattedDate = `${hours}:${minutes} ${year}`;
-
-                  return (
-                    <div
-                      className="flex items-start gap-4"
-                      key={message.message_id}
-                    >
-                      <div
-                        className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-10 w-10"
-                        style={{
-                          backgroundImage:
-                            'url("https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y")',
-                        }}
-                      ></div>
-                      <div className="flex flex-row bg-white p-3 rounded-lg shadow-md max-w-xs">
-                        <div className="flex flex-col flex-grow p-1">
-                          <p className="text-[#111418] font-bold">
-                            {message.first_name} {message.last_name}
-                          </p>
-                          <p className="text-[#111418] text-sm text-left">
-                            {message.message_content}
-                          </p>
-                        </div>
-                        <div className="mt-2 self-end">
-                          <p className="text-gray-500 text-xs">
-                            {formattedDate}
-                          </p>
+                    return (
+                      <div className="flex items-start gap-4" key={message.message_id}>
+                        <div
+                          className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-10 w-10"
+                          style={{
+                            backgroundImage:
+                              'url("https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y")',
+                          }}
+                        ></div>
+                        <div className="flex flex-row bg-white p-3 rounded-lg shadow-md max-w-xs">
+                          <div className="flex flex-col flex-grow p-1">
+                            <p className="text-[#111418] font-bold">
+                              {message.first_name} {message.last_name}
+                            </p>
+                            <p className="text-[#111418] text-sm text-left">
+                              {message.message_content}
+                            </p>
+                          </div>
+                          <div className="mt-2 self-end">
+                            <p className="text-gray-500 text-xs">{formattedDate}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                  <div ref={messagesEndRef}></div>
+                </div>
+              )}
             </div>
             {/** Message Text Input Container */}
             <div className="bg-white px-4 py-2 border-t border-gray-200 flex items-center gap-2 box-border">

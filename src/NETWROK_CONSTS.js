@@ -1,5 +1,5 @@
 // Active Server
-export const ACTIVE_SERVER = 'DEV' // Change to PROD If needed
+export const ACTIVE_SERVER = 'PROD' // Change to PROD If needed
 
 // Dev Server
 export const DEV_SERVER_IP = '127.0.0.1'
