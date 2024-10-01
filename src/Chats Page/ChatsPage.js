@@ -23,7 +23,9 @@ function ChatsPage() {
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertModalType, setAlertModalType] = useState("success");
   const [alertModalValue, setAlertModalValue] = useState("");
-  const [showGroupChatCreateModal, setShowGroupChatCreateModal] = useState(false);
+  const [showGroupChatCreateModal, setShowGroupChatCreateModal] = useState(
+    false
+  );
   const messagesEndRef = useRef(null);
   const [firstLoad, setFirstLoad] = useState(true);
 
@@ -311,7 +313,10 @@ function ChatsPage() {
                     });
 
                     return (
-                      <div className="flex items-start gap-4" key={message.message_id}>
+                      <div
+                        className="flex items-start gap-4"
+                        key={message.message_id}
+                      >
                         <div
                           className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-10 w-10"
                           style={{
@@ -329,7 +334,9 @@ function ChatsPage() {
                             </p>
                           </div>
                           <div className="mt-2 self-end">
-                            <p className="text-gray-500 text-xs">{formattedDate}</p>
+                            <p className="text-gray-500 text-xs">
+                              {formattedDate}
+                            </p>
                           </div>
                         </div>
                       </div>
